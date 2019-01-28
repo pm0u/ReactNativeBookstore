@@ -10,12 +10,16 @@
 import React, {Component} from 'react';
 import {FlatList, Platform, StyleSheet, Text, View} from 'react-native';
 import BookCard from './BookCard'
+import SideMenu from 'react-native-side-menu'
+import SideCart from './SideCart'
+import { SearchBar } from 'react-native-elements'
 
 type Props = {};
 export default class App extends Component<Props> {
 
   state = {
     books: [],
+    filterBooks: []
   }
 
   toggleCart = (id) => {
@@ -28,22 +32,39 @@ export default class App extends Component<Props> {
       }))
     }
 
+  filterBooks = filter => {
+    console.log(filter)
+    this.setState(prevState => {
+      return ({
+        filterBooks: [...prevState.books.filter(book => {
+          return book.title.toLowerCase().includes(filter.toLowerCase())
+        })]
+      })
+    })
+
+  }
+
   componentDidMount = async () => {
     const bookStoreResponse = await fetch('https://collective-api-pm.herokuapp.com/api/books')
     const books = await bookStoreResponse.json()
     console.log('setting state', books)
     this.setState(() => ({
-      books
+      books,
+      filterBooks: books
     }))
   }
+
   render() {
     return (
-    <View>
-      <FlatList data={this.state.books}
+      <SideMenu menu={<SideCart cart={this.state.books.filter(book => book.inCart)}/>}>
+              <View style={styles.topBar}><SearchBar lightTheme={true} clearIcon onChangeText={this.filterBooks}/></View>
+    <View style={{backgroundColor:'white', height:'100%'}}>
+      <FlatList contentContainerStyle={{paddingTop: 50, paddingBottom:20 }} data={this.state.filterBooks} extraData={this.state.filterBooks}
         renderItem={({item}) => <BookCard {...item} toggleCart={this.toggleCart}/>}
         keyExtractor={book => book.id.toString()}
         />
     </View>
+    </SideMenu>
     );
   }
 }
@@ -60,9 +81,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     margin: 10,
   },
-  instructions: {
-    textAlign: 'center',
-    color: '#333333',
-    marginBottom: 5,
-  },
-});
+  topBar: {
+    position: 'absolute',
+    top:0,
+    flex: 1,
+    alignSelf: 'stretch',
+    right: 0,
+    left: 0,
+    zIndex: 1,
+  }
+})
